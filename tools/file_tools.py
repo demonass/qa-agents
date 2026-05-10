@@ -1,9 +1,7 @@
 import os
 from datetime import datetime
-from langchain_core.tools import tool
 
 
-@tool
 def save_test_plan(content: str, filename_prefix: str) -> str:
     """
     Save generated test plan to a markdown file with timestamp.
