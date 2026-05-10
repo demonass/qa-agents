@@ -1,5 +1,12 @@
 from langchain_openai import ChatOpenAI
-from langchain_mcp import MCP
+
+# Optional MCP import - only load when needed
+try:
+    from langchain_mcp import MCP
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP = None
+    MCP_AVAILABLE = False
 
 class LLMConfig:
     # Traditional OpenAI-compatible API config
@@ -20,10 +27,12 @@ def get_llm() -> ChatOpenAI:
         temperature=LLMConfig.TEMPERATURE
     )
 
-def get_mcp() -> MCP:
+def get_mcp():
     """Get MCP client for connecting to MCP servers."""
+    if not MCP_AVAILABLE:
+        raise ImportError("langchain_mcp is not installed. Please install it with: pip install langchain-mcp")
     return MCP(LLMConfig.MCP_SERVICE)
 
-def get_llm_from_mcp(mcp: MCP, model_name: str = None) -> ChatOpenAI:
+def get_llm_from_mcp(mcp, model_name: str = None) -> ChatOpenAI:
     """Get LLM from MCP server."""
     return mcp.llm(model_name or LLMConfig.MODEL_NAME)

@@ -11,7 +11,7 @@ from nodes.planner_node import create_planner_node
 from nodes.designer_node import create_designer_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
-from config.settings import get_llm, get_mcp, get_llm_from_mcp, LLMConfig
+from config.settings import get_llm, get_mcp, get_llm_from_mcp, LLMConfig, MCP_AVAILABLE
 
 
 def ask_template_node(state: AgentState) -> AgentState:
@@ -67,15 +67,21 @@ def main():
     
     # Initialize LLM based on MCP or direct API
     if args.mcp:
-        print(f"🔗 Using MCP server: {args.mcp_server}")
-        try:
-            mcp = get_mcp()
-            llm = get_llm_from_mcp(mcp, args.model)
-            print(f"✅ Connected to MCP server successfully")
-        except Exception as e:
-            print(f"❌ Failed to connect to MCP server: {e}")
-            print(f"🔄 Falling back to direct API")
+        if not MCP_AVAILABLE:
+            print(f"❌ langchain_mcp is not installed")
+            print(f"   Please install it with: pip install langchain-mcp")
+            print(f"� Falling back to direct API")
             llm = get_llm()
+        else:
+            print(f"�🔗 Using MCP server: {args.mcp_server}")
+            try:
+                mcp = get_mcp()
+                llm = get_llm_from_mcp(mcp, args.model)
+                print(f"✅ Connected to MCP server successfully")
+            except Exception as e:
+                print(f"❌ Failed to connect to MCP server: {e}")
+                print(f"🔄 Falling back to direct API")
+                llm = get_llm()
     else:
         print(f"🔌 Using direct API: {LLMConfig.BASE_URL}")
         llm = get_llm()
