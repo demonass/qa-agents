@@ -1,32 +1,39 @@
 # Smart QA Agent
 
-一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够理解自然语言需求，自动生成专业的测试计划和测试用例。
+一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够理解自然语言需求，自动生成专业的测试计划和测试用例。支持 **MCP (Model Context Protocol)** 协议。
 
-## 🛠️ 环境准备
+## �🛠️ 环境准备
 
 ### 1. 安装 Python
 
 确保安装 Python 3.10 或更高版本：
 
 ```bash
-# 检查 Python 版本
 python --version
-
-# 如果未安装，推荐使用 pyenv 或直接从官网安装
-# https://www.python.org/downloads/
 ```
 
 ### 2. 安装依赖
 
 ```bash
+# 基础依赖
 pip install langchain langchain-openai langgraph sqlite-utils
+
+# MCP 支持（可选）
+pip install langchain-mcp
 ```
 
-### 3. 本地 LLM 服务
+### 3. LLM 服务配置
 
-确保已部署本地 LLM 服务（如 Ollama、vLLM 等），默认配置：
+#### 方式 A: 直接 API（默认）
+
+确保已部署 OpenAI 兼容的 LLM 服务（如 Ollama、vLLM 等）：
 - **地址**: `http://localhost:8080/v1`
 - **模型**: `qwen`
+
+#### 方式 B: MCP 服务
+
+启动 MCP 服务器（如 `langchain-mcp-server` 或自定义 MCP 服务）：
+- **地址**: `localhost:8899`（默认）
 
 ## ⚙️ 配置说明
 
@@ -34,10 +41,15 @@ pip install langchain langchain-openai langgraph sqlite-utils
 
 ```python
 class LLMConfig:
-    BASE_URL = "http://localhost:8080/v1"  # LLM 服务地址
-    API_KEY = "sk-no-key-required"          # API 密钥
-    MODEL_NAME = "qwen"                     # 模型名称
-    TEMPERATURE = 0.7                       # 生成温度
+    # 传统 OpenAI 兼容 API 配置
+    BASE_URL = "http://localhost:8080/v1"
+    API_KEY = "sk-no-key-required"
+    MODEL_NAME = "qwen"
+    TEMPERATURE = 0.7
+    
+    # MCP (Model Context Protocol) 配置
+    USE_MCP = False
+    MCP_SERVICE = "localhost:8899"  # MCP 服务器地址
 ```
 
 ## 🚀 使用方法
@@ -45,15 +57,30 @@ class LLMConfig:
 ### 启动方式
 
 ```bash
-# 推荐：模块化版本
+# 默认：使用直接 API
 python main.py
+
+# 使用 MCP 协议
+python main.py --mcp
+
+# 指定 MCP 服务器地址和模型
+python main.py --mcp --mcp-server localhost:8899 --model qwen
 ```
+
+### 命令行参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--mcp` | 使用 MCP 协议 | 否 |
+| `--mcp-server` | MCP 服务器地址 | `localhost:8899` |
+| `--model` | 模型名称 | `qwen` |
 
 ### 工作流程
 
 1. **选择语言**: 输入 `1` 使用中文，输入 `2` 使用英文
 2. **输入需求**: 在 `[语言] 需求:` 提示符后输入指令
 3. **等待执行**: Agent 自动识别意图并执行相应任务
+4. **退出程序**: 输入 `quit`、`exit` 或 `q` 退出
 
 ### 使用示例
 

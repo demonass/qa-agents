@@ -1,4 +1,5 @@
 import uuid
+import argparse
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
 
@@ -9,7 +10,7 @@ from nodes.planner_node import create_planner_node
 from nodes.designer_node import create_designer_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
-from config.settings import get_llm
+from config.settings import get_llm, get_mcp, get_llm_from_mcp, LLMConfig
 
 
 def ask_template_node(state: AgentState) -> AgentState:
@@ -26,9 +27,7 @@ def route_intent(state: AgentState) -> str:
         return "designer_node"
 
 
-def create_qa_agent():
-    llm = get_llm()
-    
+def create_qa_agent(llm):
     builder = StateGraph(AgentState)
     
     builder.add_node("intent_node", create_intent_node(llm))
@@ -53,16 +52,39 @@ def create_qa_agent():
 
 
 def main():
-    print("=" * 50)
+    parser = argparse.ArgumentParser(description="Smart QA Agent - Test Plan and Test Case Generator")
+    parser.add_argument("--mcp", action="store_true", help="Use MCP (Model Context Protocol) instead of direct API")
+    parser.add_argument("--mcp-server", type=str, default=LLMConfig.MCP_SERVICE, 
+                        help=f"MCP server address (default: {LLMConfig.MCP_SERVICE})")
+    parser.add_argument("--model", type=str, default=LLMConfig.MODEL_NAME,
+                        help=f"Model name (default: {LLMConfig.MODEL_NAME})")
+    args = parser.parse_args()
+    
+    print("=" * 60)
     print("👋 Welcome to Smart QA Agent")
-    print("=" * 50)
+    print("=" * 60)
+    
+    # Initialize LLM based on MCP or direct API
+    if args.mcp:
+        print(f"🔗 Using MCP server: {args.mcp_server}")
+        try:
+            mcp = get_mcp()
+            llm = get_llm_from_mcp(mcp, args.model)
+            print(f"✅ Connected to MCP server successfully")
+        except Exception as e:
+            print(f"❌ Failed to connect to MCP server: {e}")
+            print(f"🔄 Falling back to direct API")
+            llm = get_llm()
+    else:
+        print(f"🔌 Using direct API: {LLMConfig.BASE_URL}")
+        llm = get_llm()
     
     selected_lang = "中文"
     lang_choice = input("\nLanguage (1.中文 / 2.English) [Enter for Chinese]: ").strip()
     if lang_choice == "2":
         selected_lang = "English"
     
-    builder = create_qa_agent()
+    builder = create_qa_agent(llm)
     
     with SqliteSaver.from_conn_string("memory.db") as memory:
         app = builder.compile(checkpointer=memory)
