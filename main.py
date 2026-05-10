@@ -1,6 +1,16 @@
+import os
 import uuid
 import argparse
 import readline  # 添加 readline 支持，修复 backspace 删除问题
+
+# 在导入任何模块之前移除代理环境变量，避免 socks 代理问题
+os.environ.pop('HTTP_PROXY', None)
+os.environ.pop('HTTPS_PROXY', None)
+os.environ.pop('ALL_PROXY', None)
+os.environ.pop('http_proxy', None)
+os.environ.pop('https_proxy', None)
+os.environ.pop('all_proxy', None)
+
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
 
@@ -73,7 +83,7 @@ def main():
             print(f"� Falling back to direct API")
             llm = get_llm()
         else:
-            print(f"�🔗 Using MCP server: {args.mcp_server}")
+            print(f"�� Using MCP server: {args.mcp_server}")
             try:
                 mcp = get_mcp()
                 llm = get_llm_from_mcp(mcp, args.model)
