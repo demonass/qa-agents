@@ -119,7 +119,8 @@ def main():
                 final_requirement = user_input
                 
                 if (user_input.endswith(".txt") or user_input.endswith(".md")) and "/" in user_input:
-                    doc_content = load_document(user_input)
+                    # load_document is a StructuredTool, need to call it correctly
+                    doc_content = load_document.invoke({"file_path": user_input})
                     final_requirement = "Analyze this document." if selected_lang == "English" else "分析这份文档。"
                 
                 thread_id = str(uuid.uuid4())
@@ -146,7 +147,8 @@ def main():
                         
                         if template_path:
                             print(f"📄 Loading template from: {template_path}")
-                            t_content = load_document(template_path)
+                            # load_document is a StructuredTool, need to call it correctly
+                            t_content = load_document.invoke({"file_path": template_path})
                             app.update_state(config, {"template_content": t_content})
                         else:
                             print("⏭️ Skipping template.")

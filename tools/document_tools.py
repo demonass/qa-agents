@@ -19,7 +19,6 @@ def load_document(file_path: str) -> str:
         return f"Failed to read file: {e}"
 
 
-@tool
 def get_lang_instruction(language: str) -> str:
     """
     Get language instruction prompt based on selected language.
