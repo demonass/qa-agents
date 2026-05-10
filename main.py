@@ -1,5 +1,6 @@
 import uuid
 import argparse
+import readline  # 添加 readline 支持，修复 backspace 删除问题
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.sqlite import SqliteSaver
 
