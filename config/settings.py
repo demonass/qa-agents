@@ -1,4 +1,5 @@
 from langchain_openai import ChatOpenAI
+import os
 
 # Optional MCP import - only load when needed
 try:
@@ -20,12 +21,33 @@ class LLMConfig:
     MCP_SERVICE = "localhost:8899"  # Default MCP server address
 
 def get_llm() -> ChatOpenAI:
-    return ChatOpenAI(
-        base_url=LLMConfig.BASE_URL,
-        api_key=LLMConfig.API_KEY,
-        model=LLMConfig.MODEL_NAME,
-        temperature=LLMConfig.TEMPERATURE
-    )
+    # 保存原始环境变量
+    original_http_proxy = os.environ.get('HTTP_PROXY')
+    original_https_proxy = os.environ.get('HTTPS_PROXY')
+    original_all_proxy = os.environ.get('ALL_PROXY')
+    
+    # 临时移除代理环境变量，避免 socks 代理问题
+    os.environ.pop('HTTP_PROXY', None)
+    os.environ.pop('HTTPS_PROXY', None)
+    os.environ.pop('ALL_PROXY', None)
+    
+    try:
+        llm = ChatOpenAI(
+            base_url=LLMConfig.BASE_URL,
+            api_key=LLMConfig.API_KEY,
+            model=LLMConfig.MODEL_NAME,
+            temperature=LLMConfig.TEMPERATURE
+        )
+    finally:
+        # 恢复原始环境变量
+        if original_http_proxy is not None:
+            os.environ['HTTP_PROXY'] = original_http_proxy
+        if original_https_proxy is not None:
+            os.environ['HTTPS_PROXY'] = original_https_proxy
+        if original_all_proxy is not None:
+            os.environ['ALL_PROXY'] = original_all_proxy
+    
+    return llm
 
 def get_mcp():
     """Get MCP client for connecting to MCP servers."""
