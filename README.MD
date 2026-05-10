@@ -1,81 +1,97 @@
 # Smart QA Agent
 
-一个基于 LangGraph 和 LLM 构建的智能测试助手。它能够理解自然语言需求，自动生成专业的**测试计划 (Test Plan)** 和 **测试用例 (Test Case)**，并支持多语言交互和自定义模板。
-
-## ✨ 功能特性
-
-- **智能意图识别**: 自动区分用户是想闲聊、编写测试用例还是制定测试计划。
-- **测试计划生成**:
-    - 根据需求文档或自然语言描述生成包含范围、策略、资源和风险的完整计划。
-    - **自动保存**: 生成的测试计划会自动保存为带时间戳的 `.md` 文件。
-    - **模板支持**: 支持加载自定义的 Markdown 模板来规范输出格式。
-- **测试用例设计**: 生成结构化的测试步骤和预期结果。
-- **多语言支持**: 启动时可选择中文或英文，Agent 会根据选择调整所有提示词和输出语言。
-- **交互式工作流**: 在关键节点（如选择模板时）暂停并请求用户输入。
+一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够理解自然语言需求，自动生成专业的测试计划和测试用例。
 
 ## 🛠️ 环境准备
 
-确保你已经安装了 Python 3.10+ 和一个本地的 LLM 服务（例如 Ollama）。
+### 1. 安装 Python
 
-### 依赖安装
+确保安装 Python 3.10 或更高版本：
 
-你需要安装以下 Python 库：
+```bash
+# 检查 Python 版本
+python --version
+
+# 如果未安装，推荐使用 pyenv 或直接从官网安装
+# https://www.python.org/downloads/
+```
+
+### 2. 安装依赖
 
 ```bash
 pip install langchain langchain-openai langgraph sqlite-utils
 ```
 
+### 3. 本地 LLM 服务
+
+确保已部署本地 LLM 服务（如 Ollama、vLLM 等），默认配置：
+- **地址**: `http://localhost:8080/v1`
+- **模型**: `qwen`
+
 ## ⚙️ 配置说明
 
-代码默认连接本地的 Qwen 模型服务。请确保 `qa_agent.py` 中的配置与你的本地服务匹配：
+修改 `config/settings.py` 配置 LLM 参数：
 
 ```python
-llm = ChatOpenAI(
-    base_url="http://localhost:8080/v1", # 修改为你的 LLM 地址
-    api_key="sk-no-key-required",
-    model="qwen",                        # 修改为你的模型名称
-    temperature=0.7
-)
+class LLMConfig:
+    BASE_URL = "http://localhost:8080/v1"  # LLM 服务地址
+    API_KEY = "sk-no-key-required"          # API 密钥
+    MODEL_NAME = "qwen"                     # 模型名称
+    TEMPERATURE = 0.7                       # 生成温度
 ```
 
 ## 🚀 使用方法
 
-### 1. 启动 Agent
-
-在终端中运行脚本：
+### 启动方式
 
 ```bash
-python qa_agent.py
+# 推荐：模块化版本
+python main.py
 ```
 
-### 2. 选择语言
+### 工作流程
 
-程序启动后会提示选择语言：
-- 输入 `1` 使用中文。
-- 输入 `2` 使用英文。
+1. **选择语言**: 输入 `1` 使用中文，输入 `2` 使用英文
+2. **输入需求**: 在 `[语言] 需求:` 提示符后输入指令
+3. **等待执行**: Agent 自动识别意图并执行相应任务
 
-### 3. 输入需求
+### 使用示例
 
-在 `[语言] 需求:` 提示符后输入指令。
+#### 示例 1: 生成测试计划
 
-#### 场景 A: 生成测试计划 (带自动保存)
+```
+🔵 [中文] 需求: 帮我写一个电商购物车功能的测试计划
 
-> **User:** "帮我写一个电商购物车功能的测试计划"
+--- 🛑 PAUSED FOR USER INPUT ---
+📂 Do you have a template? (Enter path or press Enter to skip): 
 
-- Agent 会询问是否有模板。
-- 如果按回车跳过，它将按标准结构生成。
-- 如果输入路径（如 `./template.md`），它将参考该模板生成。
-- **结果:** 屏幕显示计划内容，并在当前目录生成 `购物车功能_20260509_140000.md` 文件。
+✅ Generated Test Plan:
+...（测试计划内容）...
+💾 SUCCESS! Test Plan saved to: /path/to/购物车功能_20260510_103000.md
+```
 
-#### 场景 B: 生成测试用例
+#### 示例 2: 生成测试用例
 
-> **User:** "针对微信登录功能写几个测试用例"
+```
+🔵 [中文] 需求: 针对微信登录功能写几个测试用例
 
-- Agent 直接生成具体的测试步骤和预期结果。
+✅ Generated Test Cases:
+...（测试用例内容）...
+```
 
-#### 场景 C: 读取文档分析
+#### 示例 3: 分析文档
 
-> **User:** "/path/to/requirement.txt"
+```
+🔵 [中文] 需求: /path/to/requirement.txt
 
-- Agent 会自动读取该文本文件的内容作为上下文进行分析。
+✅ Generated Test Cases:
+...（基于文档内容生成的测试用例）...
+```
+
+#### 示例 4: 闲聊
+
+```
+🔵 [中文] 需求: 你好，今天天气怎么样？
+
+🤖 Assistant: 你好！我无法访问实时天气数据，但希望你今天心情愉快！
 ```
