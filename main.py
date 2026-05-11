@@ -18,6 +18,7 @@ from nodes.intent_node import intent_node
 from nodes.chat_node import chat_node
 from nodes.planner_node import planner_node
 from nodes.designer_node import designer_node
+from nodes.code_analysis_node import code_analysis_node, ask_project_path_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
 
@@ -42,6 +43,8 @@ def route_intent(state: AgentState) -> str:
         return "chat_node"
     elif state['intent_type'] == 'TEST_PLAN':
         return "ask_template_node"
+    elif state['intent_type'] == 'CODE_ANALYSIS':
+        return "ask_project_path_node"
     else:
         return "designer_node"
 
@@ -54,18 +57,23 @@ def create_qa_agent():
     builder.add_node("ask_template_node", ask_template_node)
     builder.add_node("planner_node", planner_node)
     builder.add_node("designer_node", designer_node)
+    builder.add_node("ask_project_path_node", ask_project_path_node)
+    builder.add_node("code_analysis_node", code_analysis_node)
     
     builder.add_edge(START, "intent_node")
     builder.add_conditional_edges("intent_node", route_intent, {
         "chat_node": "chat_node",
         "ask_template_node": "ask_template_node",
-        "designer_node": "designer_node"
+        "designer_node": "designer_node",
+        "ask_project_path_node": "ask_project_path_node"
     })
     
     builder.add_edge("ask_template_node", "planner_node")
+    builder.add_edge("ask_project_path_node", "code_analysis_node")
     builder.add_edge("planner_node", END)
     builder.add_edge("designer_node", END)
     builder.add_edge("chat_node", END)
+    builder.add_edge("code_analysis_node", END)
     
     return builder
 
