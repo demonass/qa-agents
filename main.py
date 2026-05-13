@@ -19,6 +19,7 @@ from nodes.chat_node import chat_node
 from nodes.planner_node import planner_node
 from nodes.designer_node import designer_node
 from nodes.code_analysis_node import code_analysis_node, ask_project_path_node
+from nodes.rag_qa_node import rag_qa_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
 
@@ -45,6 +46,8 @@ def route_intent(state: AgentState) -> str:
         return "ask_template_node"
     elif state['intent_type'] == 'CODE_ANALYSIS':
         return "ask_project_path_node"
+    elif state['intent_type'] == 'RAG_QA':
+        return "rag_qa_node"
     else:
         return "designer_node"
 
@@ -59,13 +62,15 @@ def create_qa_agent():
     builder.add_node("designer_node", designer_node)
     builder.add_node("ask_project_path_node", ask_project_path_node)
     builder.add_node("code_analysis_node", code_analysis_node)
+    builder.add_node("rag_qa_node", rag_qa_node)
     
     builder.add_edge(START, "intent_node")
     builder.add_conditional_edges("intent_node", route_intent, {
         "chat_node": "chat_node",
         "ask_template_node": "ask_template_node",
         "designer_node": "designer_node",
-        "ask_project_path_node": "ask_project_path_node"
+        "ask_project_path_node": "ask_project_path_node",
+        "rag_qa_node": "rag_qa_node"
     })
     
     builder.add_edge("ask_template_node", "planner_node")
@@ -74,6 +79,7 @@ def create_qa_agent():
     builder.add_edge("designer_node", END)
     builder.add_edge("chat_node", END)
     builder.add_edge("code_analysis_node", END)
+    builder.add_edge("rag_qa_node", END)
     
     return builder
 
@@ -119,7 +125,9 @@ def main():
                 "requirement": final_requirement,
                 "document_content": doc_content,
                 "output_content": "",
-                "iteration": 0
+                "iteration": 0,
+                "code_analysis": "",
+                "rag_context": ""
             }
             
             print("\n🚀 Agent is thinking...")
@@ -139,6 +147,12 @@ def main():
             
             if intent == 'CHAT':
                 print(f"\n🤖 Assistant: {result_content}")
+            elif intent == 'RAG_QA':
+                print("\n" + "=" * 30)
+                print("📚 RAG Answer:")
+                print("-" * 30)
+                print(result_content)
+                print("=" * 30)
             else:
                 print("\n" + "=" * 30)
                 title = "Test Plan" if intent == 'TEST_PLAN' else "Test Cases"
