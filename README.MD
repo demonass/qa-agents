@@ -1,6 +1,6 @@
 # Smart QA Agent
 
-一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够理解自然语言需求，自动生成专业的测试计划和测试用例。支持 **MCP (Model Context Protocol)** 协议。
+一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够通过cli界面互动或飞书机器人互动，理解自然语言需求，自动生成专业的测试计划和测试用例。支持 **MCP (Model Context Protocol)** 协议。
 
 ## �🛠️ 环境准备
 
@@ -122,3 +122,124 @@ python main.py --mcp --mcp-server localhost:8899 --model qwen
 
 🤖 Assistant: 你好！我无法访问实时天气数据，但希望你今天心情愉快！
 ```
+
+#### 示例 5: 代码分析
+
+```
+🔵 [中文] 需求: 分析代码并生成测试用例
+
+📂 请输入要分析的项目目录路径: /path/to/project
+
+✅ Generated Test Cases:
+...（基于代码分析生成的测试用例）...
+```
+
+#### 示例 6: RAG 问答
+
+```
+🔵 [中文] 需求: 什么是测试覆盖率？
+
+📚 RAG Answer:
+测试覆盖率是衡量测试完整性的指标，指被测试代码覆盖的比例...
+```
+
+## 📱 飞书机器人接入
+
+### 前提条件
+
+1. 在 [飞书开放平台](https://open.feishu.cn/) 注册账号
+2. 创建企业自建应用并开启机器人能力
+3. 获取以下配置信息：
+   - App ID
+   - App Secret
+   - Verification Token
+
+### 配置步骤
+
+#### 1. 编辑飞书机器人配置
+
+```bash
+# 编辑 feishu_bot.py 文件
+vim feishu_bot.py
+```
+
+修改配置区域：
+
+```python
+# ==================== 配置区域 ====================
+APP_ID = "your_app_id"           # 替换为您的 App ID
+APP_SECRET = "your_app_secret"   # 替换为您的 App Secret
+VERIFICATION_TOKEN = "your_token" # 替换为您的 Verification Token
+PORT = 5000
+# ==================================================
+```
+
+#### 2. 配置飞书开放平台
+
+1. 登录飞书开放平台，进入您的应用
+2. 点击「功能」→「机器人」→「事件订阅」
+3. 开启事件订阅
+4. 设置请求 URL：`http://your-server-ip:5000/feishu/webhook`
+5. 添加事件：`message`（消息事件）
+
+#### 3. 安装依赖
+
+```bash
+pip install flask requests
+```
+
+#### 4. 启动服务
+
+```bash
+python feishu_bot.py
+```
+
+#### 5. 测试机器人
+
+1. 在飞书客户端搜索您创建的机器人名称
+2. 添加机器人为好友
+3. 发送消息测试："帮我写一个测试计划"
+
+### 注意事项
+
+- **公网访问**: 飞书服务器需要能访问您的服务，需要公网 IP
+- **HTTPS**: 建议使用 HTTPS（可配合 nginx + SSL）
+- **安全**: 生产环境请关闭 debug 模式
+
+## 🗂️ 项目结构
+
+```
+qa-agents/
+├── main.py              # 主程序入口
+├── feishu_bot.py        # 飞书机器人服务
+├── rag.py               # RAG 模块
+├── config/
+│   └── settings.py      # LLM 配置
+├── schemas/
+│   └── state.py         # 状态定义
+├── nodes/
+│   ├── intent_node.py   # 意图识别节点
+│   ├── chat_node.py     # 闲聊节点
+│   ├── planner_node.py  # 测试计划节点
+│   ├── designer_node.py # 测试用例节点
+│   ├── code_analysis_node.py  # 代码分析节点
+│   └── rag_qa_node.py   # RAG 问答节点
+├── tools/
+│   ├── document_tools.py    # 文档工具
+│   ├── file_tools.py        # 文件工具
+│   ├── code_analyzer.py     # 代码分析工具
+│   └── rag_tools.py         # RAG 工具
+└── documents/           # RAG 文档目录
+```
+
+## 🎯 功能特性
+
+| 功能 | 说明 | 状态 |
+|------|------|------|
+| ✅ 测试计划生成 | 基于自然语言需求生成测试计划 | 已实现 |
+| ✅ 测试用例设计 | 生成详细的测试用例 | 已实现 |
+| ✅ 代码分析 | 分析 Python 项目并生成测试 | 已实现 |
+| ✅ RAG 问答 | 基于文档的知识问答 | 已实现 |
+| ✅ MCP 支持 | 支持 Model Context Protocol | 已实现 |
+| ✅ 飞书集成 | 飞书机器人接入 | 已实现 |
+| ⏳ 微信集成 | 微信机器人接入 | 开发中 |
