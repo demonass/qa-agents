@@ -13,10 +13,11 @@ def intent_node(state: AgentState) -> AgentState:
     3. TEST_PLAN: Request to write a high-level test strategy, scope, approach, or schedule.
     4. CODE_ANALYSIS: Request to analyze code, analyze project, or generate tests from code.
     5. RAG_QA: Questions that need knowledge from documents to answer, such as 'what is...', 'explain...', 'how to...'.
+    6. RUN_TESTS: Request to run automated tests, execute test suites, analyze test results, or generate test reports.
     
     User Input: {state['user_input']}
     
-    Output ONLY the category name (CHAT, TEST_CASE, TEST_PLAN, CODE_ANALYSIS, or RAG_QA).
+    Output ONLY the category name (CHAT, TEST_CASE, TEST_PLAN, CODE_ANALYSIS, RAG_QA, or RUN_TESTS).
     """
     
     response = llm.invoke(prompt)

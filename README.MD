@@ -151,7 +151,46 @@ python rag_update.py --incremental
 ...（基于代码分析生成的测试用例）...
 ```
 
-## � 飞书机器人接入
+#### 示例 6: 运行自动化测试
+
+```
+🔵 [中文] 需求: 运行测试并生成报告
+
+📂 请输入测试文件或目录的路径: /path/to/tests/
+
+🧪 Test Execution Report:
+==============================
+📊 Test Execution Report
+========================
+
+Basic Information:
+- Framework: pytest
+- Total Tests: 15
+- Duration: 2.35 seconds
+
+Results Summary:
+- ✅ Passed: 12
+- ❌ Failed: 2
+- ⚠️ Errors: 1
+- ⏭️ Skipped: 0
+- 📈 Pass Rate: 80.0%
+
+Status: ❌ Some tests failed
+
+Detailed Results:
+----------------------------------------
+✅ tests/test_login.py::test_successful_login (0.12s)
+❌ tests/test_checkout.py::test_payment_failure (0.45s)
+⚠️ tests/test_api.py::test_create_user - ConnectionError
+...
+
+💡 Recommendations:
+- Review failed tests for bugs
+- Check error messages for root causes
+- Fix failing assertions
+```
+
+## 📱 飞书机器人接入
 
 ### 前提条件
 

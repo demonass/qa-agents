@@ -20,6 +20,7 @@ from nodes.planner_node import planner_node
 from nodes.designer_node import designer_node
 from nodes.code_analysis_node import code_analysis_node, ask_project_path_node
 from nodes.rag_retrieve_node import rag_retrieve_node
+from nodes.test_executor_node import test_executor_node, ask_test_path_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
 
@@ -46,6 +47,8 @@ def route_intent(state: AgentState) -> str:
         return "ask_template_node"
     elif state['intent_type'] == 'CODE_ANALYSIS':
         return "ask_project_path_node"
+    elif state['intent_type'] == 'RUN_TESTS':
+        return "ask_test_path_node"
     else:
         return "designer_node"
 
@@ -61,6 +64,8 @@ def create_qa_agent():
     builder.add_node("designer_node", designer_node)
     builder.add_node("ask_project_path_node", ask_project_path_node)
     builder.add_node("code_analysis_node", code_analysis_node)
+    builder.add_node("ask_test_path_node", ask_test_path_node)
+    builder.add_node("test_executor_node", test_executor_node)
     
     builder.add_edge(START, "rag_retrieve_node")
     builder.add_edge("rag_retrieve_node", "intent_node")
@@ -68,15 +73,18 @@ def create_qa_agent():
         "chat_node": "chat_node",
         "ask_template_node": "ask_template_node",
         "designer_node": "designer_node",
-        "ask_project_path_node": "ask_project_path_node"
+        "ask_project_path_node": "ask_project_path_node",
+        "ask_test_path_node": "ask_test_path_node"
     })
     
     builder.add_edge("ask_template_node", "planner_node")
     builder.add_edge("ask_project_path_node", "code_analysis_node")
+    builder.add_edge("ask_test_path_node", "test_executor_node")
     builder.add_edge("planner_node", END)
     builder.add_edge("designer_node", END)
     builder.add_edge("chat_node", END)
     builder.add_edge("code_analysis_node", END)
+    builder.add_edge("test_executor_node", END)
     
     return builder
 
@@ -125,7 +133,10 @@ def main():
                 "iteration": 0,
                 "code_analysis": "",
                 "rag_context": "",
-                "use_rag": False
+                "use_rag": False,
+                "test_path": "",
+                "test_framework": "pytest",
+                "test_results": ""
             }
             
             print("\n🚀 Agent is thinking...")
@@ -145,6 +156,12 @@ def main():
             
             if intent == 'CHAT' or intent == 'RAG_QA':
                 print(f"\n🤖 Assistant: {result_content}")
+            elif intent == 'RUN_TESTS':
+                print("\n" + "=" * 30)
+                print("🧪 Test Execution Report:")
+                print("-" * 30)
+                print(result_content)
+                print("=" * 30)
             else:
                 print("\n" + "=" * 30)
                 title = "Test Plan" if intent == 'TEST_PLAN' else "Test Cases"
