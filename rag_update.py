@@ -26,7 +26,7 @@ os.environ.pop('http_proxy', None)
 os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
+from langchain_community.document_loaders import DirectoryLoader, TextLoader, Docx2txtLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_core.embeddings import Embeddings
@@ -135,21 +135,24 @@ def main():
 
     # 加载文档
     print("📄 Loading documents...")
-    loader = DirectoryLoader(
-        args.data,
-        glob="**/*.txt",
-        loader_cls=TextLoader,
-        loader_kwargs={'encoding': 'utf-8'}
-    )
     
-    try:
-        docs = loader.load()
-    except Exception as e:
-        print(f"❌ Error loading documents: {e}")
-        return
-
+    # 定义多个加载器来支持不同格式
+    loaders = [
+        DirectoryLoader(args.data, glob="**/*.txt", loader_cls=TextLoader, loader_kwargs={'encoding': 'utf-8'}),
+        DirectoryLoader(args.data, glob="**/*.md", loader_cls=TextLoader, loader_kwargs={'encoding': 'utf-8'}),
+        DirectoryLoader(args.data, glob="**/*.docx", loader_cls=Docx2txtLoader),
+        DirectoryLoader(args.data, glob="**/*.pdf", loader_cls=PyPDFLoader)
+    ]
+    
+    docs = []
+    for loader in loaders:
+        try:
+            docs.extend(loader.load())
+        except Exception as e:
+            print(f"⚠️ Warning loading {loader.glob}: {e}")
+    
     if not docs:
-        print("⚠️ No documents found")
+        print("❌ No documents found")
         return
 
     print(f"✅ Loaded {len(docs)} documents")

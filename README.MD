@@ -84,7 +84,11 @@ python main.py --mcp --mcp-server localhost:8899 --model qwen
 
 ### RAG 文档管理
 
-**添加新文档**：将 `.txt` 格式的文档放入 `documents/` 目录
+**添加新文档**：将文档放入 `documents/` 目录，支持以下格式：
+- `.txt` - 纯文本文件
+- `.md` - Markdown 文件
+- `.docx` - Microsoft Word 文件
+- `.pdf` - PDF 文件
 
 **更新向量库**：
 ```bash
