@@ -12,6 +12,7 @@ os.environ.pop('https_proxy', None)
 os.environ.pop('all_proxy', None)
 
 from langgraph.graph import StateGraph, END, START
+from langgraph.checkpoint.sqlite import SqliteSaver
 
 from schemas.state import AgentState
 from nodes.intent_node import intent_node
@@ -102,76 +103,96 @@ def main():
     if lang_choice == "2":
         selected_lang = "English"
     
-    builder = create_qa_agent()
-    app = builder.compile()
-    
-    while True:
-        try:
-            user_input = input(f"\n🔵 [{selected_lang}] 需求: ").strip()
-            
-            if user_input.lower() in ["quit", "exit", "q"]:
-                break
-            if not user_input:
-                continue
-            
-            doc_content = ""
-            final_requirement = user_input
-            
-            if (user_input.endswith(".txt") or user_input.endswith(".md")) and "/" in user_input:
-                doc_content = load_document.invoke({"file_path": user_input})
-                final_requirement = "Analyze this document." if selected_lang == "English" else "分析这份文档。"
-            
-            initial_state = {
-                "user_input": user_input,
-                "language": selected_lang,
-                "intent_type": "",
-                "template_path": "",
-                "template_content": "",
-                "requirement": final_requirement,
-                "document_content": doc_content,
-                "output_content": "",
-                "iteration": 0,
-                "code_analysis": "",
-                "rag_context": "",
-                "use_rag": False,
-                "test_path": "",
-                "test_framework": "pytest",
-                "test_results": ""
-            }
-            
-            print("\n🚀 Agent is thinking...")
-            
-            # 直接调用直到结束
-            final_state = app.invoke(initial_state)
-            
-            intent = final_state['intent_type']
-            result_content = final_state['output_content']
-            
-            if intent == 'TEST_PLAN' and result_content:
-                file_path = save_test_plan(result_content, user_input)
-                if not file_path.startswith("Failed"):
-                    print(f"\n💾 SUCCESS! Test Plan saved to: {file_path}")
-                else:
-                    print(f"\n❌ {file_path}")
-            
-            if intent == 'CHAT' or intent == 'RAG_QA':
-                print(f"\n🤖 Assistant: {result_content}")
-            elif intent == 'RUN_TESTS':
-                print("\n" + "=" * 30)
-                print("🧪 Test Execution Report:")
-                print("-" * 30)
-                print(result_content)
-                print("=" * 30)
-            else:
-                print("\n" + "=" * 30)
-                title = "Test Plan" if intent == 'TEST_PLAN' else "Test Cases"
-                print(f"✅ Generated {title}:")
-                print("-" * 30)
-                print(result_content)
-                print("=" * 30)
+    # 初始化持久化检查点
+    with SqliteSaver.from_conn_string("memory.db") as memory:
+        builder = create_qa_agent()
+        app = builder.compile(checkpointer=memory)
         
-        except KeyboardInterrupt:
-            break
+        # 创建新对话
+        thread_id = str(uuid.uuid4())
+        config = {"configurable": {"thread_id": thread_id}}
+        print(f"\n📝 New conversation started. Thread ID: {thread_id[:8]}...")
+        
+        while True:
+            try:
+                user_input = input(f"\n🔵 [{selected_lang}] 需求: ").strip()
+                
+                if user_input.lower() in ["quit", "exit", "q"]:
+                    break
+                if not user_input:
+                    continue
+                
+                # 检查是否需要切换对话
+                if user_input.lower().startswith("thread "):
+                    parts = user_input.split()
+                    if len(parts) >= 2:
+                        thread_id = parts[1]
+                        config = {"configurable": {"thread_id": thread_id}}
+                        print(f"🔄 Switched to thread: {thread_id[:8]}...")
+                        continue
+                    else:
+                        print("❌ Invalid thread command. Usage: thread <thread_id>")
+                        continue
+                
+                doc_content = ""
+                final_requirement = user_input
+                
+                if (user_input.endswith(".txt") or user_input.endswith(".md") or 
+                    user_input.endswith(".docx") or user_input.endswith(".pdf")) and "/" in user_input:
+                    doc_content = load_document.invoke({"file_path": user_input})
+                    final_requirement = "Analyze this document." if selected_lang == "English" else "分析这份文档。"
+                
+                initial_state = {
+                    "user_input": user_input,
+                    "language": selected_lang,
+                    "intent_type": "",
+                    "template_path": "",
+                    "template_content": "",
+                    "requirement": final_requirement,
+                    "document_content": doc_content,
+                    "output_content": "",
+                    "iteration": 0,
+                    "code_analysis": "",
+                    "rag_context": "",
+                    "use_rag": False,
+                    "test_path": "",
+                    "test_framework": "pytest",
+                    "test_results": ""
+                }
+                
+                print("\n🚀 Agent is thinking...")
+                
+                # 使用持久化配置调用
+                final_state = app.invoke(initial_state, config)
+                
+                intent = final_state['intent_type']
+                result_content = final_state['output_content']
+                
+                if intent == 'TEST_PLAN' and result_content:
+                    file_path = save_test_plan(result_content, user_input)
+                    if not file_path.startswith("Failed"):
+                        print(f"\n💾 SUCCESS! Test Plan saved to: {file_path}")
+                    else:
+                        print(f"\n❌ {file_path}")
+                
+                if intent == 'CHAT' or intent == 'RAG_QA':
+                    print(f"\n🤖 Assistant: {result_content}")
+                elif intent == 'RUN_TESTS':
+                    print("\n" + "=" * 30)
+                    print("🧪 Test Execution Report:")
+                    print("-" * 30)
+                    print(result_content)
+                    print("=" * 30)
+                else:
+                    print("\n" + "=" * 30)
+                    title = "Test Plan" if intent == 'TEST_PLAN' else "Test Cases"
+                    print(f"✅ Generated {title}:")
+                    print("-" * 30)
+                    print(result_content)
+                    print("=" * 30)
+            
+            except KeyboardInterrupt:
+                break
 
 
 if __name__ == "__main__":
