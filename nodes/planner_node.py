@@ -3,6 +3,11 @@ from schemas.state import AgentState
 from tools.document_tools import get_lang_instruction
 from config.settings import get_llm
 
+def format_messages(messages):
+    if not messages:
+        return "No previous messages."
+    return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+
 def planner_node(state: AgentState) -> AgentState:
     print(f"\n--- 📝 [Planner] Drafting Test Plan... ---")
     
@@ -21,6 +26,9 @@ def planner_node(state: AgentState) -> AgentState:
     prompt = f"""
     You are an expert QA Lead. Write a comprehensive Test Plan based on:
     
+    --- Conversation History ---
+    {format_messages(state.get('messages', []))}
+    
     ### Requirement / Context ###
     {state.get('requirement', '')}
     
@@ -36,4 +44,4 @@ def planner_node(state: AgentState) -> AgentState:
     """
     
     response = llm.invoke(prompt)
-    return {"output_content": response.content}
+    return {"output_content": response.content, "messages": state.get('messages', [])}

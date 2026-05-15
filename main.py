@@ -142,6 +142,12 @@ def main():
                     doc_content = load_document.invoke({"file_path": user_input})
                     final_requirement = "Analyze this document." if selected_lang == "English" else "分析这份文档。"
                 
+                # 先获取当前状态中的消息历史
+                current_state = app.get_state(config)
+                existing_messages = []
+                if current_state and current_state.values and 'messages' in current_state.values:
+                    existing_messages = current_state.values['messages']
+                
                 initial_state = {
                     "user_input": user_input,
                     "language": selected_lang,
@@ -157,13 +163,25 @@ def main():
                     "use_rag": False,
                     "test_path": "",
                     "test_framework": "pytest",
-                    "test_results": ""
+                    "test_results": "",
+                    "messages": existing_messages
                 }
                 
                 print("\n🚀 Agent is thinking...")
                 
                 # 使用持久化配置调用
                 final_state = app.invoke(initial_state, config)
+                
+                # 更新消息历史，添加当前对话轮次
+                new_messages = final_state.get('messages', [])
+                new_messages.append({"role": "user", "content": user_input})
+                new_messages.append({"role": "assistant", "content": final_state.get('output_content', '')})
+                
+                # 更新 final_state 中的 messages
+                final_state['messages'] = new_messages
+                
+                # 保存更新后的状态
+                app.update_state(config, final_state)
                 
                 intent = final_state['intent_type']
                 result_content = final_state['output_content']

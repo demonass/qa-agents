@@ -1,6 +1,11 @@
 from schemas.state import AgentState
 from config.settings import get_llm
 
+def format_messages(messages):
+    if not messages:
+        return "No previous messages."
+    return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+
 def intent_node(state: AgentState) -> AgentState:
     print("\n--- 🔍 [Receptionist] Analyzing intent... ---")
     
@@ -15,7 +20,10 @@ def intent_node(state: AgentState) -> AgentState:
     5. RAG_QA: Questions that need knowledge from documents to answer, such as 'what is...', 'explain...', 'how to...'.
     6. RUN_TESTS: Request to run automated tests, execute test suites, analyze test results, or generate test reports.
     
-    User Input: {state['user_input']}
+    --- Conversation History ---
+    {format_messages(state.get('messages', []))}
+    
+    Current User Input: {state['user_input']}
     
     Output ONLY the category name (CHAT, TEST_CASE, TEST_PLAN, CODE_ANALYSIS, RAG_QA, or RUN_TESTS).
     """
@@ -23,4 +31,4 @@ def intent_node(state: AgentState) -> AgentState:
     response = llm.invoke(prompt)
     intent = response.content.strip().upper()
     
-    return {"intent_type": intent}
+    return {"intent_type": intent, "messages": state.get('messages', [])}

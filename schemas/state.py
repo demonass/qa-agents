@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, List, Dict
 
 class AgentState(TypedDict):
     user_input: str
@@ -16,3 +16,4 @@ class AgentState(TypedDict):
     test_path: str
     test_framework: str
     test_results: str
+    messages: List[Dict[str, str]]
