@@ -13,6 +13,11 @@ def planner_node(state: AgentState) -> AgentState:
     if state.get('template_content'):
         template_context = f"\n\n### Reference Template Structure ###\n{state['template_content']}\nPlease follow this structure but adapt it to the requirements."
     
+    # RAG 上下文
+    rag_context = ""
+    if state.get('use_rag') and state.get('rag_context'):
+        rag_context = f"\n\n### Reference Documents (RAG) ###\n{state['rag_context']}\nUse this knowledge to enhance the test plan."
+    
     prompt = f"""
     You are an expert QA Lead. Write a comprehensive Test Plan based on:
     
@@ -21,6 +26,8 @@ def planner_node(state: AgentState) -> AgentState:
     
     ### Document Content ###
     {state.get('document_content', 'None')}
+    
+    {rag_context}
     
     {template_context}
     

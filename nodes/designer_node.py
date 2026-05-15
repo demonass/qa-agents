@@ -8,6 +8,11 @@ def designer_node(state: AgentState) -> AgentState:
     llm = get_llm()
     lang_instruction = get_lang_instruction(state['language'])
     
+    # RAG 上下文
+    rag_context = ""
+    if state.get('use_rag') and state.get('rag_context'):
+        rag_context = f"\n\n### Reference Documents (RAG) ###\n{state['rag_context']}\nUse this knowledge to design better test cases."
+    
     prompt = f"""
     You are a senior QA Engineer. Design detailed test cases based on:
     
@@ -16,6 +21,8 @@ def designer_node(state: AgentState) -> AgentState:
     
     ### Document Content ###
     {state.get('document_content', 'None')}
+    
+    {rag_context}
     
     {lang_instruction}
     Output structured test cases (ID, Steps, Expected Result).

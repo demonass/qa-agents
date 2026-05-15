@@ -8,8 +8,16 @@ def chat_node(state: AgentState) -> AgentState:
     llm = get_llm()
     lang_instruction = get_lang_instruction(state['language'])
     
+    # RAG 上下文
+    rag_context = ""
+    if state.get('use_rag') and state.get('rag_context'):
+        rag_context = f"\n\n### Reference Documents (RAG) ###\n{state['rag_context']}\nUse this knowledge to answer the user's question."
+    
     prompt = f"""
     You are a helpful assistant. User said: "{state['user_input']}"
+    
+    {rag_context}
+    
     {lang_instruction}
     """
     

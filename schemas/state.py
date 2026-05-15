@@ -12,3 +12,4 @@ class AgentState(TypedDict):
     iteration: int
     code_analysis: str
     rag_context: str
+    use_rag: bool

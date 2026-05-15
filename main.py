@@ -20,6 +20,7 @@ from nodes.planner_node import planner_node
 from nodes.designer_node import designer_node
 from nodes.code_analysis_node import code_analysis_node, ask_project_path_node
 from nodes.rag_qa_node import rag_qa_node
+from nodes.rag_retrieve_node import rag_retrieve_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
 
@@ -55,6 +56,7 @@ def route_intent(state: AgentState) -> str:
 def create_qa_agent():
     builder = StateGraph(AgentState)
     
+    builder.add_node("rag_retrieve_node", rag_retrieve_node)
     builder.add_node("intent_node", intent_node)
     builder.add_node("chat_node", chat_node)
     builder.add_node("ask_template_node", ask_template_node)
@@ -64,7 +66,8 @@ def create_qa_agent():
     builder.add_node("code_analysis_node", code_analysis_node)
     builder.add_node("rag_qa_node", rag_qa_node)
     
-    builder.add_edge(START, "intent_node")
+    builder.add_edge(START, "rag_retrieve_node")
+    builder.add_edge("rag_retrieve_node", "intent_node")
     builder.add_conditional_edges("intent_node", route_intent, {
         "chat_node": "chat_node",
         "ask_template_node": "ask_template_node",
@@ -127,7 +130,8 @@ def main():
                 "output_content": "",
                 "iteration": 0,
                 "code_analysis": "",
-                "rag_context": ""
+                "rag_context": "",
+                "use_rag": False
             }
             
             print("\n🚀 Agent is thinking...")

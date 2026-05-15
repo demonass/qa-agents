@@ -36,10 +36,17 @@ def code_analysis_node(state: AgentState) -> AgentState:
         llm = get_llm()
         lang_instruction = get_lang_instruction(state['language'])
         
+        # RAG 上下文
+        rag_context = ""
+        if state.get('use_rag') and state.get('rag_context'):
+            rag_context = f"\n\n### Reference Documents (RAG) ###\n{state['rag_context']}\nUse this knowledge to enhance test case design."
+        
         prompt = f"""
         基于以下代码分析结果，为该项目生成详细的测试计划和测试用例：
         
         {report}
+        
+        {rag_context}
         
         {lang_instruction}
         
