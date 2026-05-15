@@ -1,6 +1,6 @@
 # Smart QA Agent
 
-一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够通过cli界面互动或飞书机器人互动，理解自然语言需求，自动生成专业的测试计划和测试用例。支持 **MCP (Model Context Protocol)** 协议。
+一个基于 **LangGraph** 和 **LLM** 构建的智能测试助手，能够通过cli界面互动或飞书机器人互动，理解自然语言需求，自动生成专业的测试计划和测试用例。
 
 ## �🛠️ 环境准备
 
@@ -82,6 +82,19 @@ python main.py --mcp --mcp-server localhost:8899 --model qwen
 3. **等待执行**: Agent 自动识别意图并执行相应任务
 4. **退出程序**: 输入 `quit`、`exit` 或 `q` 退出
 
+### RAG 文档管理
+
+**添加新文档**：将 `.txt` 格式的文档放入 `documents/` 目录
+
+**更新向量库**：
+```bash
+# 全量更新（重建向量库）
+python rag_update.py
+
+# 增量更新（仅添加新文档）
+python rag_update.py --incremental
+```
+
 ### 使用示例
 
 #### 示例 1: 生成测试计划
@@ -134,16 +147,7 @@ python main.py --mcp --mcp-server localhost:8899 --model qwen
 ...（基于代码分析生成的测试用例）...
 ```
 
-#### 示例 6: RAG 问答
-
-```
-🔵 [中文] 需求: 什么是测试覆盖率？
-
-📚 RAG Answer:
-测试覆盖率是衡量测试完整性的指标，指被测试代码覆盖的比例...
-```
-
-## 📱 飞书机器人接入
+## � 飞书机器人接入
 
 ### 前提条件
 
@@ -213,23 +217,25 @@ qa-agents/
 ├── main.py              # 主程序入口
 ├── feishu_bot.py        # 飞书机器人服务
 ├── rag.py               # RAG 模块
+├── rag_update.py        # RAG 向量库更新工具
 ├── config/
 │   └── settings.py      # LLM 配置
 ├── schemas/
 │   └── state.py         # 状态定义
 ├── nodes/
-│   ├── intent_node.py   # 意图识别节点
-│   ├── chat_node.py     # 闲聊节点
-│   ├── planner_node.py  # 测试计划节点
-│   ├── designer_node.py # 测试用例节点
-│   ├── code_analysis_node.py  # 代码分析节点
-│   └── rag_qa_node.py   # RAG 问答节点
+│   ├── intent_node.py          # 意图识别节点
+│   ├── chat_node.py            # 闲聊节点（支持 RAG）
+│   ├── planner_node.py         # 测试计划节点
+│   ├── designer_node.py        # 测试用例节点
+│   ├── code_analysis_node.py   # 代码分析节点
+│   └── rag_retrieve_node.py    # RAG 检索节点
 ├── tools/
 │   ├── document_tools.py    # 文档工具
 │   ├── file_tools.py        # 文件工具
 │   ├── code_analyzer.py     # 代码分析工具
 │   └── rag_tools.py         # RAG 工具
-└── documents/           # RAG 文档目录
+├── documents/           # RAG 文档目录
+└── chroma_db/          # Chroma 向量数据库
 ```
 
 ## 🎯 功能特性
