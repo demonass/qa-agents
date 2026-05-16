@@ -1,13 +1,7 @@
 from schemas.state import AgentState
-from tools.code_analyzer import analyze_project, generate_analysis_report
+from tools.code_analyzer import analyze_project, generate_analysis_report, get_code_summary, is_test_file
 from tools.document_tools import get_lang_instruction
 from config.settings import get_llm
-
-
-def format_messages(messages):
-    if not messages:
-        return "No previous messages."
-    return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
 
 
 def ask_project_path_node(state: AgentState) -> AgentState:
@@ -20,7 +14,7 @@ def ask_project_path_node(state: AgentState) -> AgentState:
 
 
 def code_analysis_node(state: AgentState) -> AgentState:
-    """代码分析节点：分析项目代码并生成测试计划"""
+    """代码分析节点：分析项目代码并调用 AI 进行智能分析"""
     print("\n--- 🔍 [Code Analyzer] Analyzing project code... ---")
     
     project_path = state.get('requirement', '').strip()
@@ -33,40 +27,41 @@ def code_analysis_node(state: AgentState) -> AgentState:
         analysis_results = analyze_project(project_path)
         
         if not analysis_results:
-            return {"output_content": f"在路径 '{project_path}' 中未找到任何 Python 文件", "messages": state.get('messages', [])}
+            return {"output_content": f"在路径 '{project_path}' 中未找到任何支持的代码文件", "messages": state.get('messages', [])}
         
-        # 生成分析报告
+        # 检查是否全是测试文件
+        if all(is_test_file(r['file_path']) for r in analysis_results):
+            report = generate_analysis_report(analysis_results)
+            return {"output_content": "检测到分析的代码全部为测试代码。\n\n代码分析报告：\n\n" + report, "messages": state.get('messages', [])}
+        
+        # 本地统计（简化版）
         report = generate_analysis_report(analysis_results)
         
-        # 调用 LLM 生成测试计划
+        # 获取代码详细摘要供 AI 分析
+        code_summary = get_code_summary(analysis_results)
+        
+        # 调用 AI 进行智能分析
         llm = get_llm()
         lang_instruction = get_lang_instruction(state['language'])
         
-        # RAG 上下文
-        rag_context = ""
-        if state.get('use_rag') and state.get('rag_context'):
-            rag_context = f"\n\n### Reference Documents (RAG) ###\n{state['rag_context']}\nUse this knowledge to enhance test case design."
-        
         prompt = f"""
-        基于以下代码分析结果，为该项目生成详细的测试计划和测试用例：
+        请分析以下项目代码，输出详细的分析结果：
         
-        --- Conversation History ---
-        {format_messages(state.get('messages', []))}
-        
+        项目统计信息：
         {report}
         
-        {rag_context}
+        代码结构摘要：
+        {code_summary}
         
         {lang_instruction}
         
         请输出：
-        1. 测试范围和策略
-        2. 关键模块测试要点
-        3. 推荐的测试用例（按模块分组）
-        4. 测试覆盖建议
+        1. 🎯 项目用途：这个项目是做什么的
+        2. 📦 模块结构：项目包含哪些主要模块/包
+        3. 🔑 核心功能：项目的核心功能和特点
         """
         
-        print("--- 📝 [Code Analyzer] Generating test plan... ---")
+        print("--- 🤖 [Code Analyzer] AI 正在分析代码... ---")
         response = llm.invoke(prompt)
         
         return {

@@ -4,6 +4,22 @@ import re
 from typing import List, Dict, Any
 
 
+def is_test_file(file_path: str) -> bool:
+    """判断文件是否为测试文件"""
+    filename = os.path.basename(file_path).lower()
+    dirname = os.path.dirname(file_path).lower()
+    
+    # 检查文件名模式
+    if filename.startswith('test_') or filename.endswith('_test.py') or filename.endswith('_test.java') or filename.endswith('_test.go') or filename.endswith('_test.c'):
+        return True
+    
+    # 检查目录路径
+    if 'test' in dirname.split(os.sep) or 'tests' in dirname.split(os.sep):
+        return True
+    
+    return False
+
+
 def analyze_python_file(file_path: str) -> Dict[str, Any]:
     """分析 Python 文件，提取结构信息"""
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -252,6 +268,60 @@ def analyze_c_file(file_path: str) -> Dict[str, Any]:
     return analysis
 
 
+def analyze_shell_file(file_path: str) -> Dict[str, Any]:
+    """分析 Shell 脚本文件"""
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+    
+    lines = content.splitlines()
+    analysis = {
+        'file_path': file_path,
+        'language': 'Shell',
+        'functions': [],
+        'classes': [],
+        'imports': [],
+        'variables': [],
+        'total_lines': len(lines)
+    }
+    
+    # 提取函数定义
+    func_pattern = re.compile(r'^\s*(\w+)\s*\(\s*\)')
+    # 提取变量定义
+    var_pattern = re.compile(r'^\s*(\w+)\s*=')
+    # 提取 source/include 语句
+    source_pattern = re.compile(r'^\s*(source|\.)\s+(\S+)')
+    
+    for i, line in enumerate(lines, 1):
+        # 跳过注释和空行
+        if line.strip().startswith('#') or line.strip() == '':
+            continue
+        
+        # 提取函数
+        match = func_pattern.match(line)
+        if match:
+            analysis['functions'].append({
+                'name': match.group(1),
+                'lineno': i
+            })
+        
+        # 提取变量
+        match = var_pattern.match(line)
+        if match and '=' in line and not '==' in line:
+            var_name = match.group(1)
+            if var_name not in ['if', 'then', 'else', 'fi', 'for', 'do', 'done', 'while', 'case', 'esac']:
+                analysis['variables'].append({
+                    'name': var_name,
+                    'lineno': i
+                })
+        
+        # 提取 source/include
+        match = source_pattern.match(line)
+        if match:
+            analysis['imports'].append(match.group(2))
+    
+    return analysis
+
+
 def analyze_project(project_path: str) -> List[Dict[str, Any]]:
     """分析整个项目的所有支持的文件"""
     results = []
@@ -279,6 +349,9 @@ def analyze_project(project_path: str) -> List[Dict[str, Any]]:
                 elif file.endswith('.c'):
                     analysis = analyze_c_file(file_path)
                     results.append(analysis)
+                elif file.endswith('.sh') or file.startswith('.') and file != '.':
+                    analysis = analyze_shell_file(file_path)
+                    results.append(analysis)
             except Exception as e:
                 print(f"分析 {file_path} 时出错: {e}")
     
@@ -286,75 +359,98 @@ def analyze_project(project_path: str) -> List[Dict[str, Any]]:
 
 
 def generate_analysis_report(analysis_results: List[Dict[str, Any]]) -> str:
-    """生成代码分析报告"""
+    """生成代码分析报告（简化版）"""
     if not analysis_results:
         return "未找到任何支持的代码文件"
     
-    report = f"## 项目代码分析报告\n\n"
-    report += f"### 📊 概览\n"
-    report += f"- 文件数量: {len(analysis_results)} 个\n"
-    
+    # 统计语言分布和代码行数
     lang_stats = {}
     total_lines = 0
-    total_funcs = 0
-    total_classes = 0
-    
     for r in analysis_results:
         lang = r.get('language', 'Unknown')
         lang_stats[lang] = lang_stats.get(lang, 0) + 1
         total_lines += r.get('total_lines', 0)
-        total_funcs += len(r.get('functions', []))
-        total_classes += len(r.get('classes', []))
     
-    report += f"- 代码行数: {total_lines} 行\n"
-    report += f"- 函数数量: {total_funcs} 个\n"
-    report += f"- 类/结构体数量: {total_classes} 个\n\n"
-    
-    report += f"### 🗂️ 语言分布\n"
+    report = f"## 📊 代码分析统计\n\n"
+    report += f"**文件数量:** {len(analysis_results)} 个\n"
+    report += f"**代码行数:** {total_lines} 行\n\n"
+    report += f"**🗂️ 语言分布:**\n"
     for lang, count in lang_stats.items():
         report += f"- {lang}: {count} 个文件\n"
-    report += "\n"
-    
-    for idx, file_info in enumerate(analysis_results, 1):
-        rel_path = file_info['file_path']
-        lang = file_info.get('language', '')
-        report += f"---\n\n"
-        report += f"### 📄 {idx}. {rel_path} ({lang})\n\n"
-        
-        if file_info.get('docstring'):
-            report += f"**文档说明:** {file_info['docstring'][:150]}...\n\n"
-        
-        if file_info.get('interfaces'):
-            report += f"**接口定义 ({len(file_info['interfaces'])}):**\n"
-            for iface in file_info['interfaces']:
-                report += f"- `interface {iface['name']}` (行 {iface['lineno']})\n"
-        
-        if file_info['classes']:
-            report += f"\n**类/结构体定义 ({len(file_info['classes'])}):**\n"
-            for cls in file_info['classes']:
-                cls_type = cls.get('type', '')
-                type_tag = f" ({cls_type})" if cls_type else ""
-                bases = f"({', '.join(cls.get('bases', []))})" if cls.get('bases') else ""
-                report += f"- `{cls['name']}{bases}`{type_tag} (行 {cls['lineno']})\n"
-                if cls.get('methods'):
-                    for method in cls['methods']:
-                        args = ', '.join(method['args'])
-                        report += f"  - `{method['name']}({args})` (行 {method['lineno']})\n"
-        
-        if file_info['functions']:
-            report += f"\n**函数定义 ({len(file_info['functions'])}):**\n"
-            for func in file_info['functions']:
-                args = ', '.join(func.get('args', [])) if func.get('args') else ''
-                returns = f" -> {func['returns']}" if func.get('returns') else ''
-                receiver = func.get('receiver', '')
-                if receiver:
-                    report += f"- `func {receiver} {func['name']}({args}){returns}` (行 {func['lineno']})\n"
-                else:
-                    report += f"- `{func['name']}({args}){returns}` (行 {func['lineno']})\n"
-        
-        if file_info.get('macros'):
-            report += f"\n**宏定义 ({len(file_info['macros'])}):**\n"
-            for macro in file_info['macros']:
-                report += f"- `#define {macro['name']}` (行 {macro['lineno']})\n"
     
     return report
+
+
+def get_code_summary(analysis_results: List[Dict[str, Any]]) -> str:
+    """生成代码详细摘要，供 AI 分析使用"""
+    summary = []
+    
+    for r in analysis_results:
+        file_info = f"文件: {os.path.basename(r['file_path'])} ({r.get('language', 'Unknown')})\n"
+        
+        # 类信息
+        if r.get('classes'):
+            file_info += f"  类: {', '.join(cls['name'] for cls in r['classes'])}\n"
+        
+        # 函数信息
+        if r.get('functions'):
+            func_names = [f["name"] for f in r['functions']]
+            file_info += f"  函数: {', '.join(func_names[:10])}"
+            if len(func_names) > 10:
+                file_info += f" (+{len(func_names)-10} 个)"
+            file_info += "\n"
+        
+        # Shell 变量信息
+        if r.get('variables'):
+            var_names = [v["name"] for v in r['variables']]
+            file_info += f"  变量: {', '.join(var_names[:10])}"
+            if len(var_names) > 10:
+                file_info += f" (+{len(var_names)-10} 个)"
+            file_info += "\n"
+        
+        summary.append(file_info)
+    
+    return "\n".join(summary)
+
+
+def infer_project_purpose(analysis_results: List[Dict[str, Any]]) -> str:
+    """根据代码内容推断项目用途"""
+    keywords = {
+        'web': ['flask', 'django', 'fastapi', 'http', 'server', 'api', 'route'],
+        'cli': ['argparse', 'click', 'command', 'terminal', 'console'],
+        'ai': ['llm', 'gpt', 'embedding', 'vector', 'rag', 'agent', 'prompt'],
+        'database': ['sql', 'orm', 'db', 'mysql', 'postgres', 'sqlite'],
+        'test': ['pytest', 'unittest', 'test_', '_test'],
+        'game': ['pygame', 'game', 'render', 'sprite'],
+        'data': ['pandas', 'numpy', 'dataframe', 'csv', 'json'],
+        'bot': ['bot', 'robot', 'chat', 'messenger'],
+    }
+    
+    purpose = "通用项目"
+    scores = {k: 0 for k in keywords}
+    
+    for r in analysis_results:
+        content = str(r)
+        for category, terms in keywords.items():
+            for term in terms:
+                if term.lower() in content.lower():
+                    scores[category] += 1
+    
+    max_score = max(scores.values())
+    if max_score > 0:
+        for category, score in scores.items():
+            if score == max_score:
+                purpose_map = {
+                    'web': 'Web 应用/API 服务',
+                    'cli': '命令行工具',
+                    'ai': 'AI/机器学习项目',
+                    'database': '数据库应用',
+                    'test': '测试框架/工具',
+                    'game': '游戏开发',
+                    'data': '数据处理/分析',
+                    'bot': '聊天机器人',
+                }
+                purpose = purpose_map.get(category, "通用项目")
+                break
+    
+    return purpose
