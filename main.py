@@ -24,6 +24,7 @@ from nodes.rag_retrieve_node import rag_retrieve_node
 from nodes.test_executor_node import test_executor_node, ask_test_path_node
 from tools.document_tools import load_document
 from tools.file_tools import save_test_plan
+from config.settings import is_kong_mode, get_kong_models, LLMConfig
 
 
 def ask_template_node(state: AgentState) -> AgentState:
@@ -98,10 +99,39 @@ def main():
     print("👋 Welcome to Smart QA Agent")
     print("=" * 60)
     
+    # 显示当前模式信息
+    if is_kong_mode():
+        print(f"🔄 当前模式: Kong 多模型网关模式")
+        print(f"📡 Kong 网关地址: {LLMConfig.KONG_BASE_URL}")
+    else:
+        print(f"🔄 当前模式: 单模型模式")
+        print(f"📡 LLM 服务地址: {LLMConfig.BASE_URL}")
+        print(f"🤖 当前模型: {LLMConfig.MODEL_NAME}")
+    
     selected_lang = "中文"
     lang_choice = input("\nLanguage (1.中文 / 2.English) [Enter for Chinese]: ").strip()
     if lang_choice == "2":
         selected_lang = "English"
+    
+    # Kong 模式下允许选择模型
+    selected_model = ""
+    if is_kong_mode():
+        models = get_kong_models()
+        print(f"\n🤖 可用模型 ({len(models)} 个):")
+        for i, (model_key, model_info) in enumerate(models.items(), 1):
+            print(f"   {i}. {model_key} - {model_info['description']}")
+        
+        model_choice = input(f"\n请选择模型 (输入序号或模型名，默认 {LLMConfig.KONG_DEFAULT_MODEL}): ").strip()
+        if model_choice.isdigit():
+            idx = int(model_choice) - 1
+            if 0 <= idx < len(models):
+                selected_model = list(models.keys())[idx]
+        elif model_choice in models:
+            selected_model = model_choice
+        else:
+            selected_model = LLMConfig.KONG_DEFAULT_MODEL
+        
+        print(f"✅ 已选择模型: {selected_model}")
     
     # 初始化持久化检查点
     with SqliteSaver.from_conn_string("memory.db") as memory:
@@ -134,6 +164,44 @@ def main():
                         print("❌ Invalid thread command. Usage: thread <thread_id>")
                         continue
                 
+                # 检查是否需要切换模型（仅 Kong 模式支持）
+                if user_input.lower().startswith("/model"):
+                    if not is_kong_mode():
+                        print("❌ 模型切换仅在 Kong 多模型模式下可用")
+                        print("💡 请在 config/settings.py 中设置 MODE = \"kong\" 启用多模型支持")
+                        continue
+                    
+                    parts = user_input.split()
+                    if len(parts) < 2:
+                        models = get_kong_models()
+                        print(f"\n🤖 当前模型: {selected_model or LLMConfig.KONG_DEFAULT_MODEL}")
+                        print(f"\n📋 可用模型列表:")
+                        for i, (model_key, model_info) in enumerate(models.items(), 1):
+                            marker = " ← 当前" if model_key == (selected_model or LLMConfig.KONG_DEFAULT_MODEL) else ""
+                            print(f"   {i}. {model_key} - {model_info['description']}{marker}")
+                        print(f"\n💡 切换模型: /model <模型名称> 或 /model <序号>")
+                        continue
+                    
+                    model_arg = parts[1]
+                    models = get_kong_models()
+                    
+                    if model_arg.isdigit():
+                        idx = int(model_arg) - 1
+                        if 0 <= idx < len(models):
+                            selected_model = list(models.keys())[idx]
+                        else:
+                            print(f"❌ 无效序号，有效范围: 1-{len(models)}")
+                            continue
+                    elif model_arg in models:
+                        selected_model = model_arg
+                    else:
+                        print(f"❌ 未知模型: {model_arg}")
+                        print(f"💡 可用模型: {', '.join(models.keys())}")
+                        continue
+                    
+                    print(f"✅ 模型已切换为: {selected_model}")
+                    continue
+                
                 doc_content = ""
                 final_requirement = user_input
                 
@@ -164,7 +232,8 @@ def main():
                     "test_path": "",
                     "test_framework": "pytest",
                     "test_results": "",
-                    "messages": existing_messages
+                    "messages": existing_messages,
+                    "selected_model": selected_model
                 }
                 
                 print("\n🚀 Agent is thinking...")

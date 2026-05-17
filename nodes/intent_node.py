@@ -9,7 +9,9 @@ def format_messages(messages):
 def intent_node(state: AgentState) -> AgentState:
     print("\n--- 🔍 [Receptionist] Analyzing intent... ---")
     
-    llm = get_llm()
+    # 获取用户选择的模型（Kong 模式下有效）
+    selected_model = state.get('selected_model', '')
+    llm = get_llm(model_name=selected_model)
     
     prompt = f"""
     Analyze the user's input and classify the intent into one of the following categories:

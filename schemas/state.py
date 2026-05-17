@@ -17,3 +17,5 @@ class AgentState(TypedDict):
     test_framework: str
     test_results: str
     messages: List[Dict[str, str]]
+    # Kong 网关多模型支持字段
+    selected_model: str  # 用户选择的模型名称

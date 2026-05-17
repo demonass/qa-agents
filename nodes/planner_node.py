@@ -11,7 +11,9 @@ def format_messages(messages):
 def planner_node(state: AgentState) -> AgentState:
     print(f"\n--- 📝 [Planner] Drafting Test Plan... ---")
     
-    llm = get_llm()
+    # 获取用户选择的模型（Kong 模式下有效）
+    selected_model = state.get('selected_model', '')
+    llm = get_llm(model_name=selected_model)
     lang_instruction = get_lang_instruction(state['language'])
     
     template_context = ""
