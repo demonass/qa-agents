@@ -22,7 +22,36 @@ pip install langchain langchain-openai langgraph sqlite-utils
 pip install langchain-mcp
 ```
 
-### 3. LLM 服务配置
+### 3. 下载 Embedding 模型（意图识别用）
+
+本项目使用本地 embedding 模型进行语义意图识别，无需消耗 LLM token，速度更快。
+
+#### 作用
+- **意图识别**: 将用户输入分类为 CHAT/TEST_CASE/TEST_PLAN/CODE_ANALYSIS/RAG_QA/RUN_TESTS
+- **快速响应**: 毫秒级语义匹配，比 LLM 调用更快
+- **低成本**: 不消耗 LLM token
+
+#### 下载模型
+
+```bash
+# 创建模型目录
+mkdir -p models
+
+# 方法一：从 HuggingFace 下载（推荐）
+pip install huggingface_hub
+python -c "from huggingface_hub import snapshot_download; snapshot_download('sentence-transformers/all-MiniLM-L6-v2', local_dir='./models/all-MiniLM-L6-v2')"
+
+# 方法二：手动下载
+# 从 https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2 下载并解压到 models/all-MiniLM-L6-v2/
+```
+
+#### 依赖
+
+```bash
+pip install transformers torch
+```
+
+### 4. LLM 服务配置
 
 本项目支持两种 LLM 服务模式：
 

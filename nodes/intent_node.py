@@ -1,42 +1,101 @@
 from schemas.state import AgentState
-from config.settings import get_llm
+from transformers import AutoTokenizer, AutoModel
+import torch
+import numpy as np
+import os
+from typing import Optional
 
-def format_messages(messages):
-    if not messages:
-        return "No previous messages."
-    return "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+_TOKENIZER: Optional[AutoTokenizer] = None
+_MODEL: Optional[AutoModel] = None
+
+INTENT_CATEGORIES = {
+    "CHAT": [
+        "Hello, how are you?",
+        "Good morning, what can you do?",
+        "Nice to meet you",
+        "Greetings or casual talk"
+    ],
+    "TEST_CASE": [
+        "Write test cases for login functionality",
+        "Design test scenarios for payment",
+        "Create test cases for user registration",
+        "Generate detailed test cases for this feature"
+    ],
+    "TEST_PLAN": [
+        "Generate a test plan for the API",
+        "Create a testing strategy document",
+        "Write test scope and schedule",
+        "Design overall test approach"
+    ],
+    "CODE_ANALYSIS": [
+        "Analyze this codebase",
+        "Review the code structure",
+        "Check code quality and issues",
+        "Examine project architecture"
+    ],
+    "RAG_QA": [
+        "What is the architecture described in the docs?",
+        "Explain how authentication works",
+        "How do I configure the database?",
+        "What does the documentation say about...",
+        "Questions needing document knowledge"
+    ],
+    "RUN_TESTS": [
+        "Run pytest on the tests directory",
+        "Execute the test suite",
+        "Run all unit tests",
+        "Execute tests and show results"
+    ]
+}
+
+
+def get_model():
+    global _TOKENIZER, _MODEL
+    if _TOKENIZER is None or _MODEL is None:
+        model_path = os.path.join(os.path.dirname(__file__), '..', 'models', 'all-MiniLM-L6-v2')
+        _TOKENIZER = AutoTokenizer.from_pretrained(model_path)
+        _MODEL = AutoModel.from_pretrained(model_path)
+        _MODEL.eval()
+    return _TOKENIZER, _MODEL
+
+
+def encode(text: str) -> np.ndarray:
+    tokenizer, model = get_model()
+    inputs = tokenizer(text, padding=True, truncation=True, return_tensors="pt")
+    
+    with torch.no_grad():
+        outputs = model(**inputs)
+    
+    embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
+    return embeddings.flatten()
+
+
+def compute_intent(user_input: str) -> str:
+    user_embedding = encode(user_input)
+
+    best_intent = "CHAT"
+    best_score = -1.0
+
+    for intent, examples in INTENT_CATEGORIES.items():
+        example_embeddings = np.array([encode(example) for example in examples])
+        similarities = np.dot(example_embeddings, user_embedding) / (
+            np.linalg.norm(example_embeddings, axis=1) * np.linalg.norm(user_embedding)
+        )
+        max_similarity = float(np.max(similarities))
+
+        if max_similarity > best_score:
+            best_score = max_similarity
+            best_intent = intent
+
+    print(f"🎯 Intent: {best_intent} (similarity: {best_score:.3f})")
+    return best_intent
+
 
 def intent_node(state: AgentState) -> AgentState:
     print("\n--- 🔍 [Receptionist] Analyzing intent... ---")
 
-    selected_model = state.get('selected_model', '')
-    llm = get_llm(model_name=selected_model)
+    user_input = state.get('user_input', '')
 
-    prompt = f"""Classify the user's intent into one of these categories:
-- CHAT: Greetings or casual talk
-- TEST_CASE: Write specific test cases/scenarios
-- TEST_PLAN: Write test strategy/scope/schedule
-- CODE_ANALYSIS: Analyze code or project
-- RAG_QA: Questions needing document knowledge (what is..., explain..., how to...)
-- RUN_TESTS: Execute tests or analyze results
+    intent = compute_intent(user_input)
 
-Examples:
-User: "Hello, how are you?" → CHAT
-User: "Write test cases for login functionality" → TEST_CASE
-User: "Generate a test plan for the API" → TEST_PLAN
-User: "Analyze this codebase" → CODE_ANALYSIS
-User: "What is the architecture described in the docs?" → RAG_QA
-User: "Run pytest on the tests directory" → RUN_TESTS
-User: "How do I configure the database?" → RAG_QA
-
---- Conversation History ---
-{format_messages(state.get('messages', []))}
-
-User: "{state['user_input']}"
-
-Output ONLY the category name."""
-    
-    response = llm.invoke(prompt)
-    intent = response.content.strip().upper()
-    
     return {"intent_type": intent, "messages": state.get('messages', [])}

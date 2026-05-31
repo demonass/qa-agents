@@ -27,3 +27,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Models (large binary files, download separately)
+models/
