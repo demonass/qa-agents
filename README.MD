@@ -6,10 +6,44 @@
 
 ### 1. 安装 Python
 
-确保安装 Python 3.10 或更高版本：
+确保安装 Python 3.10 或更高版本。
+
+#### Ubuntu/Debian
 
 ```bash
-python --version
+sudo apt update
+sudo apt install python3 python3-pip python3-venv -y
+```
+
+#### CentOS/RHEL
+
+```bash
+sudo yum install python3 python3-pip -y
+```
+
+#### macOS (使用 Homebrew)
+
+```bash
+brew install python3
+```
+
+#### 使用 Conda（推荐，跨平台）
+
+```bash
+# 安装 Miniconda
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+
+# 创建虚拟环境
+conda create -n qa-agent python=3.12
+conda activate qa-agent
+```
+
+#### 验证安装
+
+```bash
+python3 --version  # 应显示 Python 3.10+
+pip3 --version
 ```
 
 ### 2. 安装依赖
@@ -24,17 +58,15 @@ pip install langchain-mcp
 
 ### 3. 下载 Embedding 模型（意图识别用）
 
-本项目使用本地 embedding 模型进行语义意图识别，无需消耗 LLM token，速度更快。
+本项目使用本地 embedding 模型进行语义意图识别,速度更快。
 
 #### 作用
-- **意图识别**: 将用户输入分类为 CHAT/TEST_CASE/TEST_PLAN/CODE_ANALYSIS/RAG_QA/RUN_TESTS
-- **快速响应**: 毫秒级语义匹配，比 LLM 调用更快
-- **低成本**: 不消耗 LLM token
+**意图识别**: 将用户输入分类为 CHAT/TEST_CASE/TEST_PLAN/CODE_ANALYSIS/RAG_QA/RUN_TESTS
 
 #### 下载模型
 
 ```bash
-# 创建模型目录
+# 于qa-agents目录中,创建模型目录
 mkdir -p models
 
 # 方法一：从 HuggingFace 下载（推荐）
