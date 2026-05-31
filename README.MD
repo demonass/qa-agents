@@ -80,10 +80,54 @@ python -c "from huggingface_hub import snapshot_download; snapshot_download('sen
 #### 依赖
 
 ```bash
-pip install transformers torch
+pip install transformers torch redis
 ```
 
-### 4. LLM 服务配置
+### 4. LLM 响应缓存（可选，默认不启用）
+
+使用 Redis 缓存 LLM 响应，相同查询可直接返回缓存结果，无需重复调用 LLM。
+
+> ⚠️ **默认配置**: `LLM_CACHE_ENABLED = False`，如需启用请在 `config/settings.py` 中修改。
+
+#### 作用
+- **加速响应**: 缓存命中时毫秒级返回
+- **节省成本**: 减少重复 LLM 调用
+- **TTL 控制**: 默认 7 天过期
+
+#### 安装 Redis
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install redis-server -y
+
+# macOS
+brew install redis
+brew services start redis
+
+# 启动 Redis
+redis-server --daemonize yes
+```
+
+#### 验证 Redis
+
+```bash
+redis-cli ping
+# 应返回: PONG
+```
+
+#### 配置
+
+在 `config/settings.py` 中修改：
+
+```python
+LLM_CACHE_ENABLED = True   # 缓存开关
+REDIS_HOST = "localhost"    # Redis 地址
+REDIS_PORT = 6379           # Redis 端口
+LLM_CACHE_TTL = 604800      # 7 天过期（秒）
+```
+
+### 5. LLM 服务配置
 
 本项目支持两种 LLM 服务模式：
 

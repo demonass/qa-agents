@@ -7,19 +7,19 @@ class LLMConfig:
     # MODE: "single" - 单模型模式（原有模式）
     #       "kong"   - Kong 网关多模型模式
     MODE = "single"  # 默认使用单模型模式
-    
+
     # ==================== 单模型模式配置 ====================
     # 直接连接到单个 LLM 服务（如 Ollama、vLLM 等）
     BASE_URL = "http://localhost:8080/v1"
     API_KEY = "sk-no-key-required"
     MODEL_NAME = "qwen"
     TEMPERATURE = 0.7
-    
+
     # ==================== Kong 网关模式配置 ====================
     # 通过 Kong API Gateway 路由到多个模型
     KONG_BASE_URL = "http://localhost:8000/v1"  # Kong 网关地址
     KONG_API_KEY = "your-kong-api-key"          # Kong API 密钥
-    
+
     # Kong 模式下支持的模型列表
     # 格式: {"模型标识": {"model_name": "实际模型名", "description": "描述"}}
     KONG_MODELS: Dict[str, Dict[str, str]] = {
@@ -42,6 +42,19 @@ class LLMConfig:
     }
     # Kong 模式下的默认模型
     KONG_DEFAULT_MODEL = "qwen"
+
+    # ==================== Redis 缓存配置 ====================
+    # LLM 响应缓存开关（默认关闭，需安装 Redis 并设置 True 启用）
+    LLM_CACHE_ENABLED = False
+
+    # Redis 连接配置
+    REDIS_HOST = "localhost"
+    REDIS_PORT = 6379
+    REDIS_DB = 0
+    REDIS_PASSWORD = None  # 如果有密码请设置
+
+    # 缓存过期时间（秒），默认 7 天
+    LLM_CACHE_TTL = 60 * 60 * 24 * 7
 
 
 def get_llm(model_name: Optional[str] = None) -> ChatOpenAI:

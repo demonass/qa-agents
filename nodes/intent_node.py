@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import os
 from typing import Optional
+from tools.cache_tools import get_cached_response, set_cached_response
 
 _TOKENIZER: Optional[AutoTokenizer] = None
 _MODEL: Optional[AutoModel] = None
@@ -62,10 +63,10 @@ def get_model():
 def encode(text: str) -> np.ndarray:
     tokenizer, model = get_model()
     inputs = tokenizer(text, padding=True, truncation=True, return_tensors="pt")
-    
+
     with torch.no_grad():
         outputs = model(**inputs)
-    
+
     embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
     return embeddings.flatten()
 
@@ -96,6 +97,13 @@ def intent_node(state: AgentState) -> AgentState:
 
     user_input = state.get('user_input', '')
 
+    cached_intent = get_cached_response("intent", user_input)
+    if cached_intent:
+        print(f"⚡ Cache hit! Using cached intent: {cached_intent}")
+        return {"intent_type": cached_intent, "messages": state.get('messages', [])}
+
     intent = compute_intent(user_input)
+
+    set_cached_response("intent", user_input, intent)
 
     return {"intent_type": intent, "messages": state.get('messages', [])}
