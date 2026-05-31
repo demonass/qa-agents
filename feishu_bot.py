@@ -22,29 +22,21 @@ os.environ.pop('HTTPS_PROXY', None)
 os.environ.pop('ALL_PROXY', None)
 
 from main import create_qa_agent
-from config.settings import is_kong_mode, LLMConfig, get_kong_models
+from config.settings import LLMConfig
 
 # ==================== 配置区域 ====================
 APP_ID = "your_app_id"  # 替换为您的 App ID
 APP_SECRET = "your_app_secret"  # 替换为您的 App Secret
 VERIFICATION_TOKEN = "your_verification_token"  # 替换为您的 Verification Token
 PORT = 5000
-
-# Kong 模式下飞书机器人使用的默认模型
-DEFAULT_MODEL = LLMConfig.KONG_DEFAULT_MODEL if is_kong_mode() else ""
 # ==================================================
 
 app = Flask(__name__)
 qa_agent = create_qa_agent().compile()
 
-# 打印启动信息
-if is_kong_mode():
-    print(f"🔄 飞书机器人运行在 Kong 多模型模式")
-    print(f"📡 Kong 网关: {LLMConfig.KONG_BASE_URL}")
-    print(f"🤖 默认模型: {DEFAULT_MODEL}")
-else:
-    print(f"🔄 飞书机器人运行在单模型模式")
-    print(f"📡 LLM 服务: {LLMConfig.BASE_URL}")
+print(f"🔄 飞书机器人运行在单模型模式")
+print(f"📡 LLM 服务: {LLMConfig.BASE_URL}")
+print(f"🤖 模型: {LLMConfig.MODEL_NAME}")
 
 def get_tenant_access_token():
     """获取租户访问令牌"""
@@ -166,8 +158,7 @@ def webhook():
             "output_content": "",
             "iteration": 0,
             "code_analysis": "",
-            "rag_context": "",
-            "selected_model": DEFAULT_MODEL  # Kong 模式下使用默认模型
+            "rag_context": ""
         }
         
         # 调用 QA Agent

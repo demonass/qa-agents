@@ -39,11 +39,9 @@ def code_analysis_node(state: AgentState) -> AgentState:
         
         # 获取代码详细摘要供 AI 分析
         code_summary = get_code_summary(analysis_results)
-        
+
         # 调用 AI 进行智能分析
-        # 获取用户选择的模型（Kong 模式下有效）
-        selected_model = state.get('selected_model', '')
-        llm = get_llm(model_name=selected_model)
+        llm = get_llm()
         lang_instruction = get_lang_instruction(state['language'])
         
         prompt = f"""

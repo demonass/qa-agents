@@ -11,9 +11,7 @@ def format_messages(messages):
 def designer_node(state: AgentState) -> AgentState:
     print(f"\n--- 🤖 [Designer] Writing Test Cases... ---")
 
-    selected_model = state.get('selected_model', '')
-
-    cached = get_cached_response(state.get('intent_type', 'TEST_CASE'), state['user_input'], selected_model)
+    cached = get_cached_response(state.get('intent_type', 'TEST_CASE'), state['user_input'])
     if cached:
         print(f"⚡ Cache hit! Returning cached response")
         return {"output_content": cached, "messages": state.get('messages', [])}
@@ -42,10 +40,10 @@ def designer_node(state: AgentState) -> AgentState:
     Output structured test cases (ID, Steps, Expected Result).
     """
 
-    llm = get_llm(model_name=selected_model)
+    llm = get_llm()
     response = llm.invoke(prompt)
     content = response.content
 
-    set_cached_response(state.get('intent_type', 'TEST_CASE'), state['user_input'], content, selected_model)
+    set_cached_response(state.get('intent_type', 'TEST_CASE'), state['user_input'], content)
 
     return {"output_content": content, "messages": state.get('messages', [])}

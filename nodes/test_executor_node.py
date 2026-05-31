@@ -13,10 +13,8 @@ def format_messages(messages):
 def test_executor_node(state: AgentState) -> AgentState:
     """测试执行节点：运行测试并分析结果"""
     print("\n--- 🧪 [Test Executor] Running tests... ---")
-    
-    # 获取用户选择的模型（Kong 模式下有效）
-    selected_model = state.get('selected_model', '')
-    llm = get_llm(model_name=selected_model)
+
+    llm = get_llm()
     lang_instruction = get_lang_instruction(state['language'])
     
     # 获取测试路径

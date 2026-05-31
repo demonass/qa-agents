@@ -1,16 +1,25 @@
 import hashlib
 import json
-import redis
 from typing import Optional, Any
 from config.settings import LLMConfig
 
-_redis_client: Optional[redis.Redis] = None
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+
+_redis_client: Optional[Any] = None
 
 
-def get_redis_client() -> Optional[redis.Redis]:
+def get_redis_client():
     global _redis_client
 
     if not LLMConfig.LLM_CACHE_ENABLED:
+        return None
+
+    if not REDIS_AVAILABLE:
+        print(f"⚠️ Redis module not installed, caching disabled (pip install redis)")
         return None
 
     if _redis_client is None:
@@ -26,9 +35,6 @@ def get_redis_client() -> Optional[redis.Redis]:
             )
             _redis_client.ping()
             print(f"✅ Redis connected: {LLMConfig.REDIS_HOST}:{LLMConfig.REDIS_PORT}")
-        except redis.ConnectionError:
-            print(f"⚠️ Redis not available, caching disabled")
-            _redis_client = None
         except Exception as e:
             print(f"⚠️ Redis error: {e}, caching disabled")
             _redis_client = None
