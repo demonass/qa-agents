@@ -160,7 +160,7 @@ LLM_CACHE_TTL = 604800      # 7 天过期（秒）
 推荐使用新版 CLI，基于 ReAct + Skills 架构，提供更标准的 Agent 行为方式：
 
 ```bash
-source ai_env/bin/activate && python3 ./cli_react.py
+python ./cli_react.py
 ```
 
 **可用命令：**
