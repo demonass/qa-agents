@@ -2,6 +2,8 @@
 
 一个基于 **LangGraph** 和 **LLM** (主要针对本地部署的小模型)构建的私人智能测试助手，能够通过cli界面互动或飞书机器人互动，理解自然语言需求，自动生成专业的测试计划和测试用例。
 
+![Smart QA Agent Preview](output/main.png)
+
 ## 🏗️ 架构特点
 
 ### ReAct + Skills 架构

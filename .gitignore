@@ -28,8 +28,7 @@ Thumbs.db
 # Logs
 *.log
 
-# Output
-output/
+# Output (output/main.png is tracked for README preview)
 
 # Models (large binary files, download separately)
 models/
