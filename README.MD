@@ -2,7 +2,25 @@
 
 一个基于 **LangGraph** 和 **LLM** (主要针对本地部署的小模型)构建的私人智能测试助手，能够通过cli界面互动或飞书机器人互动，理解自然语言需求，自动生成专业的测试计划和测试用例。
 
-## �🛠️ 环境准备
+## 🏗️ 架构特点
+
+### ReAct + Skills 架构
+
+采用标准 Agent 行为方式：
+
+- **ReAct 模式**: 通过 Thought → Action → Observation 循环实现智能推理
+- **渐进式工具披露**: 根据任务需求动态加载所需工具，而非一次性加载所有工具
+- **Skills 架构**: 将不同功能模块化封装为独立技能，便于维护和扩展
+- **语义技能路由**: 使用 embedding 模型计算用户查询与技能的相似度，实现自动技能匹配
+
+### 核心组件
+
+- **ReAct Agent**: 核心推理引擎，控制 Thought-Action-Observation 循环
+- **Skill Router**: 技能路由器，自动匹配用户查询与最合适的技能
+- **Tool Manager**: 工具管理器，支持渐进式工具披露
+- **Skills**: 功能模块集合，包括测试计划、测试用例设计、代码分析、RAG 问答等
+
+## 🛠️ 环境准备
 
 ### 1. 安装 Python
 
@@ -137,7 +155,48 @@ LLM_CACHE_TTL = 604800      # 7 天过期（秒）
 
 ## 🚀 使用方法
 
-### 启动方式
+### 新版 CLI（ReAct + Skills）
+
+推荐使用新版 CLI，基于 ReAct + Skills 架构，提供更标准的 Agent 行为方式：
+
+```bash
+source ai_env/bin/activate && python3 ./cli_react.py
+```
+
+**可用命令：**
+
+| 命令 | 说明 |
+|------|------|
+| `help` | 显示帮助信息 |
+| `skills` | 列出所有可用技能 |
+| `tools` | 列出所有可用工具 |
+| `skill <name>` | 切换到指定技能 |
+| `quit` / `exit` | 退出 |
+
+**命令历史：**
+
+- ↑/↓ 箭头：查看历史命令
+- Ctrl+R：搜索历史命令
+
+**调试模式：**
+
+Agent 默认以 verbose 模式运行，会显示详细的思考过程和工具使用：
+
+```
+============================================================
+🔄 迭代 1/5
+============================================================
+
+💡 [思考] 用户需要设计手机App的自动化测试方案，我需要先分析项目结构来了解测试范围。
+
+🔧 [执行工具] analyze_project
+   └── 参数: {"project_path": "."}
+
+📋 [工具返回]
+   └── 项目结构分析完成...
+```
+
+### 旧版 CLI
 
 ```bash
 # 默认：使用直接 API
@@ -340,14 +399,30 @@ python feishu_bot.py
 
 ```
 qa-agents/
-├── main.py              # 主程序入口
+├── main.py              # 旧版主程序入口
+├── cli_react.py         # 新版 CLI 入口（ReAct + Skills）
 ├── feishu_bot.py        # 飞书机器人服务
 ├── rag.py               # RAG 模块
 ├── rag_update.py        # RAG 向量库更新工具
+├── agents/              # Agent 核心实现
+│   ├── __init__.py
+│   ├── react_agent.py   # ReAct Agent
+│   ├── skill_router.py  # 技能路由器
+│   └── tool_manager.py  # 工具管理器
 ├── config/
 │   └── settings.py      # LLM 配置
+├── prompts/             # 提示词模板
+│   ├── __init__.py
+│   └── react_prompt.py  # ReAct 提示词
 ├── schemas/
 │   └── state.py         # 状态定义
+├── skills/              # 技能模块
+│   ├── __init__.py
+│   ├── base.py                    # 技能基类
+│   ├── test_planning_skill.py     # 测试计划技能
+│   ├── test_case_design_skill.py  # 测试用例技能
+│   ├── code_analysis_skill.py     # 代码分析技能
+│   └── rag_qa_skill.py            # RAG 问答技能
 ├── nodes/
 │   ├── intent_node.py          # 意图识别节点
 │   ├── chat_node.py            # 闲聊节点（支持 RAG）
@@ -358,8 +433,12 @@ qa-agents/
 ├── tools/
 │   ├── document_tools.py    # 文档工具
 │   ├── file_tools.py        # 文件工具
+│   ├── cache_tools.py       # 缓存工具
 │   ├── code_analyzer.py     # 代码分析工具
 │   └── rag_tools.py         # RAG 工具
-├── documents/           # RAG 文档目录
-└── chroma_db/          # Chroma 向量数据库
+├── models/                # Embedding 模型目录
+│   └── all-MiniLM-L6-v2/   # 语义匹配模型
+├── documents/             # RAG 文档目录
+├── output/                # 测试计划输出目录
+└── chroma_db/            # Chroma 向量数据库
 ```
