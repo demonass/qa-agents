@@ -1,5 +1,11 @@
-from langchain_openai import ChatOpenAI
 import os
+
+# 在模块加载时立即清除代理环境变量，避免 socks 代理错误
+for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy']:
+    if key in os.environ:
+        del os.environ[key]
+
+from langchain_openai import ChatOpenAI
 from typing import Dict, Optional
 
 class LLMConfig:
@@ -23,6 +29,11 @@ class LLMConfig:
 
 
 def get_llm() -> ChatOpenAI:
+    # 清除代理环境变量以避免 socks 代理错误
+    for key in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+        if key in os.environ:
+            del os.environ[key]
+    
     return ChatOpenAI(
         base_url=LLMConfig.BASE_URL,
         api_key=LLMConfig.API_KEY,
