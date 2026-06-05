@@ -9,7 +9,7 @@ __pycache__/
 venv/
 ENV/
 
-# Database
+# Database (Chroma)
 *.db
 *.db-shm
 *.db-wal
@@ -28,7 +28,9 @@ Thumbs.db
 # Logs
 *.log
 
-# Output (output/main.png is tracked for README preview)
+# Output directory - ignore everything except main.png (used for README preview)
+output/
+!output/main.png
 
 # Models (large binary files, download separately)
 models/
